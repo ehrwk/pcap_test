@@ -2,6 +2,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "pcap_header.h"
+
+#define ETHERTYPE_IP 0x0800
+
 void usage() {
 	printf("syntax: pcap-test <interface>\n");
 	printf("sample: pcap-test wlan0\n");
@@ -24,6 +28,90 @@ bool parse(Param* param, int argc, char* argv[]) {
 	return true;
 }
 
+
+void print_mac(const u_int8_t* mac) {
+    printf("%02x:%02x:%02x:%02x:%02x:%02x",
+           mac[0], mac[1], mac[2],
+           mac[3], mac[4], mac[5]);
+}
+
+void print_payload(const u_int8_t* payload, int payload_len) {
+    int print_len = 0;
+
+    if (payload_len <= 0) {
+        printf("Payload is not exist.\n");
+        return;
+    }
+
+    print_len = payload_len > 20 ? 20 : payload_len;
+
+    printf("Payload: ");
+    for (int i = 0; i < print_len; i++) {
+        printf("%02x ", payload[i]);
+    }
+    printf("\n");
+}
+
+
+void parse_packet(const u_char* packet, uint32_t caplen) {
+    PacketInfo info;
+    init_packet_info(&info);
+
+    if (caplen < info.ethernet_len)
+        return;
+
+    info.eth = (struct libnet_ethernet_hdr*)packet;
+
+    if (ntohs(info.eth->ether_type) != ETHERTYPE_IP)
+        return;
+
+    info.ip = (struct libnet_ipv4_hdr*)(packet + info.ethernet_len);
+
+    info.ip_len = info.ip->ip_hl * 4;
+
+    if (info.ip_len < 20)
+        return;
+
+    if (caplen < info.ethernet_len + info.ip_len)
+        return;
+
+    if (info.ip->ip_p != IPPROTO_TCP)
+        return;
+
+    info.tcp = (struct libnet_tcp_hdr*)(packet + info.ethernet_len + info.ip_len);
+
+    info.tcp_len = info.tcp->th_off * 4;
+
+    if (info.tcp_len < 20)
+        return;
+
+    if (caplen < info.ethernet_len + info.ip_len + info.tcp_len)
+        return;
+
+    info.payload = packet + info.ethernet_len + info.ip_len + info.tcp_len;
+    info.payload_len = caplen - info.ethernet_len - info.ip_len - info.tcp_len;
+
+    printf("====================================\n");
+
+    printf("Ethernet src mac: ");
+    print_mac(info.eth->ether_shost);
+    printf("\n");
+
+    printf("Ethernet dst mac: ");
+    print_mac(info.eth->ether_dhost);
+    printf("\n");
+
+    printf("IP src: %s\n", inet_ntoa(info.ip->ip_src));
+    printf("IP dst: %s\n", inet_ntoa(info.ip->ip_dst));
+
+    printf("TCP src port: %u\n", ntohs(info.tcp->th_sport));
+    printf("TCP dst port: %u\n", ntohs(info.tcp->th_dport));
+
+    print_payload(info.payload, info.payload_len);
+}
+
+
+
 int main(int argc, char* argv[]) {
 	if (!parse(&param, argc, argv))
 		return -1;
@@ -45,7 +133,9 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 		printf("%u bytes captured\n", header->caplen);
+		parse_packet(packet, header->caplen);
 	}
 
 	pcap_close(pcap);
+	return 0;
 }
