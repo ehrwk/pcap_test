@@ -90,8 +90,12 @@ void parse_packet(const u_char* packet, uint32_t caplen) {
     if (caplen < info.ethernet_len + info.ip_len + info.tcp_len)
         return;
 
+    uint16_t ip_total_len = ntohs(info.ip->ip_len);
+    if (ip_total_len < info.ip_len + info.tcp_len)
+	    return;
+    
     info.payload = packet + info.ethernet_len + info.ip_len + info.tcp_len;
-    info.payload_len = caplen - info.ethernet_len - info.ip_len - info.tcp_len;
+    info.payload_len = ip_total_len - info.ip_len - info.tcp_len;
 
     printf("====================================\n");
 
