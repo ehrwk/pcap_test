@@ -6,6 +6,8 @@
 
 #define ETHERTYPE_IP 0x0800
 
+int packet_count = 0;
+
 void usage() {
 	printf("syntax: pcap-test <interface>\n");
 	printf("sample: pcap-test wlan0\n");
@@ -92,6 +94,9 @@ void parse_packet(const u_char* packet, uint32_t caplen) {
     info.payload_len = caplen - info.ethernet_len - info.ip_len - info.tcp_len;
 
     printf("====================================\n");
+
+    packet_count++;
+    printf("Packet %d\n", packet_count);
 
     printf("Ethernet src mac: ");
     print_mac(info.eth->ether_shost);
