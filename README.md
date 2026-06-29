@@ -9,7 +9,7 @@ GitHub의 파일 업로드 용량 제한(최대 25MB)으로 인해 실행 영상
 
 ## Files
 
-* `makefile`과 `pcap-test.pro`는 강사님께서 제공해주신 코드를 그대로 사용하였습니다.
+* `makefile`눈 강사님께서 제공해주신 코드를 그대로 사용하였습니다.
 * `pcap-test.c`는 과제 요구사항에 맞게 수정 및 구현하였습니다.
 * `pcap_header.h`는 `libnet-headers.h`를 기반으로 작성하였으며, 패킷 정보를 저장하는 `PacketInfo` 구조체와 이를 초기화하는 `init_packet_info()` 함수를 추가하였습니다.
 
